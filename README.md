@@ -2,8 +2,13 @@
 
 ## Goals
 1. Design a test plan based on the API and Database description given. Please be as extensive as possible
-2. Implement the test plan in any framework / scripting language you are comfortable in. You don't need to implement every test you thought of in the plan, but should be sufficient enough to help us evaluate your skills.
-3. This application has not been tested for any security or implementation bugs, more the issues found, the better.
+2. Build a framework for API testing and implement few test scenarios that you list out in above point
+
+> Note: This application has not been tested for any security or implementation bugs, more the issues found, the better.
+
+## Evaluation
+1. Code should be in working condition, a test case report generated would be a plus
+2. Update the readme on how to run your test case scenarios
 
 ## How to run?
 1. Please ensure you have golang installed in your machine / environment. You can follow https://go.dev/doc/install to install golang.
