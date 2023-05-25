@@ -12,6 +12,8 @@
    1. Note: it may take some time on the first run as it will download dependecies.
 4. Application starts on PORT 8080
 
+Alternatively, you can download pre-built binary for your platform from [releases](https://github.com/abhishek-pingsafe/sdet-assignment/releases/tag/v0.0.1) page
+
 ## API Description
 
 1. POST /api
