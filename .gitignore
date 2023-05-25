@@ -2,3 +2,4 @@ customers.db
 .idea
 .DS_Store
 *.log
+builds
