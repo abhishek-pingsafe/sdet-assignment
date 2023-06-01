@@ -42,6 +42,17 @@ Alternatively, you can download pre-built binary for your platform from [release
          2. field_type: required
          3. constraint: 10 characters length
 
+2. GET /api?id=<customer-id>
+   1. Headers
+      1. "x-session-token":
+         1. type: string
+         2. accepted value: "authorized-user"
+      2. "user-agent"
+         1. type: string
+         2. invalid values: string containing bot keyword
+   2. Query Parameter
+      1. id
+
 ## Database Model
 We are using SQLite DB for this project. Once you run the application, it will create a **_customers.db_** file in the present working directory.
 

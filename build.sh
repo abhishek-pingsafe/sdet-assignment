@@ -10,6 +10,7 @@ do
     for architecture in "${architectures[@]}"
     do
         # Set the GOOS and GOARCH environment variables
+        export CGO_ENABLED=1
         export GOOS=$platform
         export GOARCH=$architecture
 

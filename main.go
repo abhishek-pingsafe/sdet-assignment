@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -16,12 +17,41 @@ type Customer struct {
 	ID          string `json:"id" binding:"required"`
 	Name        string `json:"name"`
 	PhoneNumber string `json:"phone_number" binding:"required"`
+	SmsSent     bool   `json:"sms_sent"`
 }
 
 func main() {
 	db := initDB("customers.db")
+	db.Exec("PRAGMA read_uncommitted = 1")
 	defer db.Close()
 	router := gin.Default()
+
+	router.GET("/api", func(c *gin.Context) {
+		sessionToken := c.Request.Header.Get("x-session-token")
+		userAgent := c.Request.Header.Get("user-agent")
+
+		// Check if both headers are present
+		if sessionToken != "authorized-user" {
+			c.JSON(http.StatusForbidden, gin.H{"error": "request cannot be authenticated!"})
+			return
+		}
+
+		if strings.Contains(strings.ToLower(userAgent), "bot") {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "bad bot, go away!"})
+			return
+		}
+
+		customerId, err := strconv.Atoi(c.Query("id"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "malformed request"})
+		}
+		customer, err := getCustomer(db, customerId)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "error while fetching customer"})
+			return
+		}
+		c.JSON(200, customer)
+	})
 
 	router.POST("/api", func(c *gin.Context) {
 		sessionToken := c.Request.Header.Get("x-session-token")
@@ -70,7 +100,9 @@ func sendSMS(db *sql.DB, customerID string) {
 
 	// Update the sms_sent column to true
 	updateSMSSentSQL := "UPDATE customers SET sms_sent = true WHERE id = ?"
-	stmt, err := db.Prepare(updateSMSSentSQL)
+	tx, err := db.Begin()
+	stmt, err := tx.Prepare(updateSMSSentSQL)
+	defer stmt.Close()
 	if err != nil {
 		fmt.Printf("Error preparing statement: %v\n", err)
 		return
@@ -78,8 +110,13 @@ func sendSMS(db *sql.DB, customerID string) {
 
 	_, err = stmt.Exec(customerID)
 	if err != nil {
+		tx.Rollback()
 		fmt.Printf("Error updating customer: %v\n", err)
 		return
+	}
+	err = tx.Commit()
+	if err != nil {
+		fmt.Printf("failed to send sms")
 	}
 	fmt.Printf("sent sms to customer: %v\n", customerID)
 }
@@ -111,17 +148,39 @@ func initDB(filepath string) *sql.DB {
 }
 
 func insertCustomer(db *sql.DB, customer Customer) error {
+	tx, err := db.Begin()
 	insertCustomerSQL := "INSERT INTO customers(id, name, phone_number) VALUES(?, ?, ?)"
-	stmt, err := db.Prepare(insertCustomerSQL)
+	stmt, err := tx.Prepare(insertCustomerSQL)
+	defer stmt.Close()
 	if err != nil {
 		panic(err)
 	}
 
 	_, err = stmt.Exec(customer.ID, customer.Name, customer.PhoneNumber)
 	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	err = tx.Commit()
+	if err != nil {
 		return err
 	}
 	return nil
+}
+
+func getCustomer(db *sql.DB, customerId int) (*Customer, error) {
+	stmt, err := db.Prepare("SELECT id, name, phone_number, sms_sent FROM customers WHERE id = ?")
+	if err != nil {
+		panic(err)
+	}
+	defer stmt.Close()
+
+	var customer Customer
+	err = stmt.QueryRow(customerId).Scan(&customer.ID, &customer.Name, &customer.PhoneNumber, &customer.SmsSent)
+	if err != nil {
+		return nil, err
+	}
+	return &customer, nil
 }
 
 func isAlpha(str string) bool {

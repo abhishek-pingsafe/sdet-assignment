@@ -3,3 +3,4 @@ customers.db
 .DS_Store
 *.log
 builds
+main
